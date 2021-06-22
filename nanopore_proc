@@ -1,0 +1,18 @@
+mkdir wtdbg2_output
+
+FASTQ="" # FASTQ file location
+output="" # Output location
+THREADS="31"
+
+nice -n 5 wtdbg2 -x ont -t 31 -i "${FASTQ}" -o wtdbg2_output/gridion_even
+nice -n 5 wtpoa-cns -t "${THREADS}" -i "${output}".ctg.lay.gz -fo "${output}".raw.fa
+
+
+nice -n 5 minimap2 -t"${THREADS}" -ax map-ont -r2 "${output}".raw.fa "${FASTQ}" | samtools sort -@4 >"${output}".bam
+
+nice -n 5 salmon index -t "${output}".raw.fa -i gridion_index
+nice -n 5 salmon quant -i gridion_index -l A -r "${output}".raw.fa -o transcripts_quant
+
+
+mkdir bins
+nice -n 5 metabat2 -i wtdbg2_output/gridion_even.raw.fa -o bins/grid_even_bin
