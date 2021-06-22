@@ -1,0 +1,32 @@
+# Requires pre-made assembly
+SAMPLENAME= && ASSEMBLYNAME=
+
+# Creates sam files from fastq files with the given sample name
+bbmap.sh in1="$SAMPLENAME"/"$SAMPLENAME"_1.fastq.gz in2="$SAMPLENAME"/"$SAMPLENAME"_2.fastq.gz ref="$ASSEMBLYNAME" t=8 out=mapped_"$SAMPLENAME".sam usemodulo
+
+# Sorts sam file and creates bam file
+samtools sort mapped_"$SAMPLENAME".sam -O bam -o mapped_"$SAMPLENAME"_sorted.bam
+
+# Creates index from sorted bam file
+samtools index mapped_"$SAMPLENAME"_sorted.bam
+
+# Creates idx stats file
+samtools idxstats mapped_"$SAMPLENAME"_sorted.bam > "$SAMPLENAME"_idxstats.tdf
+
+# Removes all created bam and sam files
+rm  mapped_"$SAMPLENAME".sam mapped_"$SAMPLENAME"_sorted.bam mapped_"$SAMPLENAME"_sorted.bam.bai
+
+# Creates salmon index from assembly
+salmon index -t "$ASSEMBLYNAME" -i "$ASSEMBLYNAME"_index
+
+# Creates quantification files from the created index and fastq files
+salmon quant -i "$ASSEMBLYNAME"_index -l A -1 "$SAMPLENAME"/"$SAMPLENAME"_1.fastq.gz -2 "$SAMPLENAME"/"$SAMPLENAME"_2.fastq.gz -o transcripts_"$SAMPLENAME"_quant
+
+# Removes created index
+rm -r "$ASSEMBLYNAME"_index
+
+# Creates binning directory and writes binning information to it
+mkdir "$SAMPLENAME"_binning_output
+metabat2 --seed 1 -o "$SAMPLENAME"_binning_output/"$SAMPLENAME"_lomenlab_illumina -i "$ASSEMBLYNAME" mapped_"$SAMPLENAME"_sorted.bam
+
+rm -r ref
